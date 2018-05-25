@@ -1,7 +1,7 @@
 {
-  "name": "easy-peasy-bot",
+  "name": "statbot",
   "version": "1.0.0",
-  "description": "The awesomest bot evar.",
+  "description": "Slack Bot for monitoring Insights OpenShift Status.",
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
@@ -9,18 +9,18 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/DEGoodmanWilson/easy-peasy-bot-app.git"
+    "url": "git+https://github.com/wcmitchell/insights-statbot.git"
   },
   "keywords": [
     "slack",
     "bot"
   ],
-  "author": "D.E. Goodman-Wilson",
+  "author": "Chris Mitchell",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/DEGoodmanWilson/easy-peasy-bot-app/issues"
+    "url": "https://github.com/wcmitchell/insights-statbot/issues"
   },
-  "homepage": "https://github.com/DEGoodmanWilson/easy-peasy-bot-app#readme",
+  "homepage": "https://github.com/wcmitchell/insights-statbot#readme",
   "engines": {
     "node": "5.1.1"
   },

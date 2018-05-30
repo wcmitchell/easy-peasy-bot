@@ -3,6 +3,38 @@
  */
 
 
+var request = require('request');
+var j = request.jar();
+var login_url = process.env.STATUS_LOGIN_URL;
+var status_url = process.env.STATUS_URL;
+
+function login(username, password, url) {
+    var options = {
+        url: url,
+        form: {
+            page_access_user_email: username,
+            page_access_user_password: password
+        },
+        jar: j,
+        followAllRedirects: true
+    }
+
+    request.post(options, function (error, response, body) {
+        if (error) {
+            bot.startPrivateConversation({user: installer}, function (err, convo) {
+                if (err) {
+                    console.log(err);
+                } else {
+                    convo.say('Error logging into ', url);
+                    convo.say(error);
+                }
+            });
+            console.log(j);
+        }
+    });
+}
+
+
 /**
  * Define a function for initiating a conversation on installation
  * With custom integrations, we don't have a way to find out who installed us, so we can't message them :(
@@ -20,7 +52,6 @@ function onInstallation(bot, installer) {
         });
     }
 }
-
 
 /**
  * Configure the persistence options
@@ -81,14 +112,22 @@ controller.on('rtm_close', function (bot) {
  */
 // BEGIN EDITING HERE!
 
-controller.on('bot_channel_join', function (bot, message) {
-    bot.reply(message, "I'm here!")
+controller.hears('status', ['direct_mention', 'direct_message'], function (bot, message) {
+    if (!j.getCookies(login_url).length || j.getCookies(login_url)[0].TTL() < 1) {
+        login(process.env.STATUS_LOGIN, process.env.STATUS_PASS, login_url);
+    }
+    request.get({url: status_url, jar: j, followAllRedirects: true}, function(err, response, body){
+        if(err) {
+            console.log('Error getting status', err);
+        }
+        else {
+            console.log(j);
+            console.log("Req head:", request.headers);
+            console.log("Resp head:", response.headers);
+            bot.reply(message, JSON.parse(body).status);
+        }
+    });
 });
-
-controller.hears('hello', 'direct_message', function (bot, message) {
-    bot.reply(message, 'Hello!');
-});
-
 
 /**
  * AN example of what could be:

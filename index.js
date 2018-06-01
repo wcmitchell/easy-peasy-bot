@@ -8,32 +8,31 @@ var j = request.jar();
 var login_url = process.env.STATUS_LOGIN_URL;
 var status_url = process.env.STATUS_URL;
 
-function login(username, password, url) {
+function login(username, password, url, callback) {
     var options = {
         url: url,
         form: {
-            page_access_user_email: username,
-            page_access_user_password: password
+            page_access_user: {
+                email: username,
+                password: password
+            },
         },
         jar: j,
         followAllRedirects: true
     }
-
+    console.log(options);
     request.post(options, function (error, response, body) {
-        if (error) {
-            bot.startPrivateConversation({user: installer}, function (err, convo) {
-                if (err) {
-                    console.log(err);
-                } else {
-                    convo.say('Error logging into ', url);
-                    convo.say(error);
-                }
-            });
-            console.log(j);
-        }
+        callback(error, body);
     });
+
 }
 
+function get_status(callback) {
+    request.get({url: status_url, jar: j, followAllRedirects: true}, function(err, response, body){
+            console.log("Err: " + err + "\nResp: " + response + "\nBody: " + body);
+            callback(err, response, body)
+    });
+}
 
 /**
  * Define a function for initiating a conversation on installation
@@ -112,22 +111,47 @@ controller.on('rtm_close', function (bot) {
  */
 // BEGIN EDITING HERE!
 
+controller.hears('pinky', ['direct_mention', 'direct_message'], function (bot, message) {
+    bot.reply(message, "Narf!");
+});
+
 controller.hears('status', ['direct_mention', 'direct_message'], function (bot, message) {
     if (!j.getCookies(login_url).length || j.getCookies(login_url)[0].TTL() < 1) {
-        login(process.env.STATUS_LOGIN, process.env.STATUS_PASS, login_url);
+        login(process.env.STATUS_LOGIN, process.env.STATUS_PASS, login_url, function(err, response){
+            if (err) {
+                console.log("Error logging in: "+err);
+            } else {
+                get_status(function(err, response, body){
+                    if (err) {
+                        console.log("Error getting status: "+err);
+                    } else {
+                        bot.reply(message, JSON.parse(body).status.description);
+                    }
+                });
+            }
+        });
+    } else {
+        get_status(function(err, response, body){
+            if (err) {
+                console.log("Error getting status: "+err);
+            } else {
+                bot.reply(message, JSON.parse(body).status.description);
+            }
+        });
     }
-    request.get({url: status_url, jar: j, followAllRedirects: true}, function(err, response, body){
-        if(err) {
-            console.log('Error getting status', err);
-        }
-        else {
-            console.log(j);
-            console.log("Req head:", request.headers);
-            console.log("Resp head:", response.headers);
-            bot.reply(message, JSON.parse(body).status);
-        }
-    });
 });
+//     request.get({url: status_url, jar: j, followAllRedirects: true}, function(err, response, body){
+//         if(err) {
+//             console.log('Error getting status', err);
+//         }
+//         else {
+//             console.log(j);
+//             console.log("Req head:", request.headers);
+//             console.log("Resp head:", response.headers);
+//             bot.reply(message, JSON.parse(body).status);
+//         }
+//     });
+// });
 
 /**
  * AN example of what could be:

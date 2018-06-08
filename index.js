@@ -154,7 +154,7 @@ function get_status(callback) {
 }
 
 function get_symbol(incStatus){
-    var symbol = "";
+    let symbol = "";
     if (incStatus == "operational" || incStatus == "resolved"){
         symbol = "good";
     } else if (incStatus == "partial_outage"){
@@ -226,7 +226,7 @@ function format_incident(incident, header) {
     return msg;
 }
 
-setInterval(get_status, 60000, function(err, response, body){
+/* setInterval(get_status, 60000, function(err, response, body){
     if (err) {
         console.log("Error getting stats: ", err);
     } else {
@@ -253,6 +253,7 @@ setInterval(get_status, 60000, function(err, response, body){
         stats = new_stats;
     }
 });
+*/
 
 controller.hears('pinky', ['direct_mention', 'direct_message'], function (bot, message) {
     bot.reply(message, "Narf!");

@@ -226,10 +226,10 @@ function format_incident(incident, header) {
     return msg;
 }
 
-/* setInterval(get_status, 60000, function(err, response, body){
+setInterval(get_status, 60000, function(err, response, body){
     if (err) {
         console.log("Error getting stats: ", err);
-    } else {
+    } else if (Object.keys(stats).length != 0){
         let new_stats = JSON.parse(body);
         new_stats.incidents.forEach((incident) => {
             if (new Date(incident.updated_at) > new Date(stats.incidents[0].updated_data)) {
@@ -250,10 +250,9 @@ function format_incident(incident, header) {
                 }
             });
         });
-        stats = new_stats;
     }
+    stats = new_stats;
 });
-*/
 
 controller.hears('pinky', ['direct_mention', 'direct_message'], function (bot, message) {
     bot.reply(message, "Narf!");

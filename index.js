@@ -229,29 +229,33 @@ function format_incident(incident, header) {
 setInterval(get_status, 60000, function(err, response, body){
     if (err) {
         console.log("Error getting stats: ", err);
-    } else if (Object.keys(stats).length != 0){
+    } else {
         let new_stats = JSON.parse(body);
-        new_stats.incidents.forEach((incident) => {
-            if (new Date(incident.updated_at) > new Date(stats.incidents[0].updated_data)) {
-                let symbol = "";
-                if (incident.status == "operational" || incident.status == "resolved") {
-                    symbol = "good";
-                } else if (incident.status == "partial_outage") {
-                    symbol = "warn";
-                } else {
-                    symbol = "danger";
+
+        if (Object.keys(stats).length != 0){
+            new_stats.incidents.forEach((incident) => {
+                if (new Date(incident.updated_at) > new Date(stats.incidents[0].updated_data)) {
+                    let symbol = "";
+                    if (incident.status == "operational" || incident.status == "resolved") {
+                        symbol = "good";
+                    } else if (incident.status == "partial_outage") {
+                        symbol = "warn";
+                    } else {
+                        symbol = "danger";
+                    }
+                    let msg = format_incident(incident, "New Insights Maintenance Incident.");
+                    bot.api.chat.postMessage(msg);
                 }
-                let msg = format_incident(incident, "New Insights Maintenance Incident.");
-                bot.api.chat.postMessage(msg);
-            }
-            incident.components.forEach((comp) => {
-                if (comp.id in insightsComps && (new Date(insightsComps[comp.id].updated_at) < new Date(comp.updated_at))) {
-                    insightsComps[comp.id] = comp;
-                }
+                incident.components.forEach((comp) => {
+                    if (comp.id in insightsComps && (new Date(insightsComps[comp.id].updated_at) < new Date(comp.updated_at))) {
+                        insightsComps[comp.id] = comp;
+                    }
+                });
             });
-        });
+        }
+
+        stats = new_stats;
     }
-    stats = new_stats;
 });
 
 controller.hears('pinky', ['direct_mention', 'direct_message'], function (bot, message) {

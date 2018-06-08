@@ -154,7 +154,7 @@ function get_status(callback) {
 }
 
 function get_symbol(incStatus){
-    let symbol = "";
+    var symbol = "";
     if (incStatus == "operational" || incStatus == "resolved"){
         symbol = "good";
     } else if (incStatus == "partial_outage"){

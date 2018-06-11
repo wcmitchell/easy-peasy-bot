@@ -88,7 +88,7 @@ if (process.env.MONGOLAB_URI) {
     };
 } else {
     config = {
-        json_file_store: ((process.env.TOKEN)?'./db_slack_bot_ci/':'./db_slack_bot_a/'), //use a different name if an app or CI
+        json_file_store: ((process.env.TOKEN)?'/var/lib/slackbot/db_slack_bot_ci/':'/var/lib/slackbot/db_slack_bot_a/'), //use a different name if an app or CI
     };
 }
 
@@ -340,7 +340,7 @@ controller.hears(['help', 'commands'], ['direct_mention', 'direct_message'], fun
 controller.hears(['uptime', 'identify yourself', 'who are you', 'what is your name'],
         'direct_message,direct_mention,mention', function(bot, message) {
 
-                    var hostname = os.hostname();
+                    var hostname = process.env.HOSTNAME;
                     var uptime = formatUptime(process.uptime());
 
                     bot.reply(message, ':robot_face: I am a bot named <@' + bot.identity.name +

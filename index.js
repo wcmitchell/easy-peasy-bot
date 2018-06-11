@@ -347,20 +347,13 @@ controller.hears(['uptime', 'identify yourself', 'who are you', 'what is your na
                               '>. I have been running for ' + uptime + ' on ' + hostname + '.');
 });
 
-function formatUptime(uptime) {
-        var unit = 'second';
-        if (uptime > 60) {
-                    uptime = uptime / 60;
-                    unit = 'minute';
-                }
-        if (uptime > 60) {
-                    uptime = uptime / 60;
-                    unit = 'hour';
-                }
-        if (uptime != 1) {
-                    unit = unit + 's';
-                }
+function formatUptime(uptime_secs) {
+    var hours   = Math.floor(uptime_secs / 3600);
+    var minutes = Math.floor((uptime_secs - (hours * 3600)) / 60);
+    var seconds = uptime_secs - (hours * 3600) - (minutes * 60);
 
-        uptime = uptime + ' ' + unit;
-        return uptime;
+    if (hours   < 10) {hours   = "0"+hours;}
+    if (minutes < 10) {minutes = "0"+minutes;}
+    if (seconds < 10) {seconds = "0"+seconds;}
+    return hours+':'+minutes+':'+seconds;
 }

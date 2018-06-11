@@ -1,5 +1,5 @@
 {
-  "name": "statbot",
+  "name": "statusbot",
   "version": "1.0.0",
   "description": "Slack Bot for monitoring Insights OpenShift Status.",
   "main": "index.js",

@@ -284,7 +284,9 @@ function get_status(callback) {
     }
 }
 
-setInterval(function(){bot.trigger('update_request', [bot, {}])}, 60000);
+setInterval(function(){
+    bot.trigger('update_request', [bot, {}]);
+}, 60000);
     
 controller.on('update_request', function(bot, message) {
     get_status( function(err, response, body){

@@ -4,8 +4,9 @@
 
 
 var request = require('request');
-
 var j = request.jar();
+var loc = require('./loc.json');
+var sex = [':male_sign:',':female_sign:',':robot_face:'];
 
 const login_url = process.env.STATUS_LOGIN_URL;
 const status_url = process.env.STATUS_URL;
@@ -135,23 +136,7 @@ controller.on('rtm_close', function (bot) {
  */
 // BEGIN EDITING HERE!
 
-function get_status(callback) {
-    if (!j.getCookies(login_url).length || j.getCookies(login_url)[0].TTL() < 1) {
-        login(process.env.STATUS_LOGIN, process.env.STATUS_PASS, login_url, function(err, response){
-            if (err) {
-                console.log("Error logging in: "+err);
-            } else {
-                request.get({url: status_url, jar: j, followAllRedirects: true}, function(err, response, body){
-                    callback(err, response, body);
-                });
-            }
-        });
-    } else {
-         request.get({url: status_url, jar: j, followAllRedirects: true}, function(err, response, body){
-            callback(err, response, body);
-         });
-    }
-}
+// Utility functions
 
 function get_symbol(incStatus){
     let symbol = "";
@@ -226,7 +211,83 @@ function format_incident(incident, header) {
     return msg;
 }
 
-setInterval(get_status, 60000, function(err, response, body){
+function formatUptime(uptime_secs) {
+    var days    = Math.floor(uptime_secs / 86400);
+    uptime_secs %= 86400;
+    var hours   = Math.floor(uptime_secs / 3600);
+    uptime_secs %= 3600;
+    var minutes = Math.floor(uptime_secs / 60);
+    uptime_secs %= 60
+    var seconds = Math.floor(uptime_secs);
+
+    if (hours   < 10) {hours   = "0"+hours;}
+    if (minutes < 10) {minutes = "0"+minutes;}
+    if (seconds < 10) {seconds = "0"+seconds;}
+    return days+'d:'+hours+'h:'+minutes+'m:'+seconds+'s';
+}
+
+// Available Commands
+controller.hears('^update$', ['direct_mention', 'direct_message'], function(bot, message) {
+    bot.trigger('update_request', [bot, message]);
+});
+
+controller.hears('pinky', ['direct_mention', 'direct_message'], function (bot, message) {
+    bot.reply(message, "Narf!");
+});
+
+controller.hears('status', ['direct_mention', 'direct_message'], function (bot, message) {
+    bot.trigger('status_request', [bot, message]);
+});
+
+controller.hears(['components', '^comps$'], ['direct_mention','direct_message'], function(bot, message) {
+    bot.trigger('component_request', [bot, message]);
+});
+
+controller.hears(['last', 'last_incident'], ['direct_mention', 'direct_message'], function(bot, message) {
+    bot.trigger('last_request', [bot, message]);
+});
+
+controller.hears(['uptime', 'identify yourself', 'who are you', 'what is your name'], 
+    ['direct_message', 'direct_mention,mention'], function(bot, message) {
+        bot.trigger('uptime_request', [bot, message]);
+});
+
+controller.hears('a/s/l', 'direct_mention', function(bot, message) {
+    bot.trigger('90s_request', [bot, message]);
+});
+
+controller.hears(['^help$', '^commands$'], ['direct_mention', 'direct_message'], function(bot, message){
+    let msg = "*Available commands:*\n• status: Reports overall Insights service status\n" +
+              "• components or comps: Show the status of each individual Insights component\n" +
+              "• last: Show the most recent incident's status\n" +
+              "• uptime: Show host and uptime data for the bot.";
+    bot.reply(message, msg);
+
+});
+
+// Functionality
+function get_status(callback) {
+    if (!j.getCookies(login_url).length || j.getCookies(login_url)[0].TTL() < 1) {
+        login(process.env.STATUS_LOGIN, process.env.STATUS_PASS, login_url, function(err, response){
+            if (err) {
+                console.log("Error logging in: "+err);
+            } else {
+                request.get({url: status_url, jar: j, followAllRedirects: true}, function(err, response, body){
+                    callback(err, response, body);
+                });
+            }
+        });
+    } else {
+         request.get({url: status_url, jar: j, followAllRedirects: true}, function(err, response, body){
+            callback(err, response, body);
+         });
+    }
+}
+
+setInterval(function(){bot.trigger('update_request', [bot, {}])}, 60000);
+    
+controller.on('update_request', function(bot, message) {
+    get_status( function(err, response, body){
     if (err) {
         console.log("Error getting stats: ", err);
     } else {
@@ -254,16 +315,11 @@ setInterval(get_status, 60000, function(err, response, body){
                 });
             });
         }
-
         stats = new_stats;
     }
 });
 
-controller.hears('pinky', ['direct_mention', 'direct_message'], function (bot, message) {
-    bot.reply(message, "Narf!");
-});
-
-controller.hears('status', ['direct_mention', 'direct_message'], function (bot, message) {
+controller.on('status_request', function(bot, message) {
     if (!Object.keys(stats).length){
         get_status(function(err, response, body){
             if (err) {
@@ -285,7 +341,7 @@ controller.hears('status', ['direct_mention', 'direct_message'], function (bot, 
     }
 });
 
-controller.hears(['components', 'comps'], ['direct_mention','direct_message'], function(bot, message) {
+controller.on('component_request', function(bot, message) {
     if (!Object.keys(stats).length){
         get_status(function(err, response, body){
             if (err) {
@@ -309,7 +365,7 @@ controller.hears(['components', 'comps'], ['direct_mention','direct_message'], f
     }
 });
 
-controller.hears(['last', 'last_incident'], ['direct_mention', 'direct_message'], function(bot, message) {
+controller.on('last_request', function(bot, message) {
     var symbol = ""
     if (!Object.keys(stats).length){
         get_status(function(err, response, body){
@@ -329,36 +385,17 @@ controller.hears(['last', 'last_incident'], ['direct_mention', 'direct_message']
     }
 });
 
-controller.hears(['help', 'commands'], ['direct_mention', 'direct_message'], function(bot, message){
-    let msg = "*Available commands:*\n• status: Reports overall Insights service status\n" +
-              "• components or comps: Show the status of each individual Insights component\n" +
-              "• last: Show the most recent incident's status\n" +
-              "• uptime: Show host and uptime data for the bot.";
-    bot.reply(message, msg);
+controller.on('uptime_request', function(bot, message) {
+    var hostname = process.env.HOSTNAME;
+    var uptime = formatUptime(process.uptime());
 
+    bot.reply(message, ':robot_face: I am a bot named <@' + bot.identity.name +
+              '>. I have been running for ' + uptime + ' on ' + hostname + '.');
 });
 
-controller.hears(['uptime', 'identify yourself', 'who are you', 'what is your name'],
-        'direct_message,direct_mention,mention', function(bot, message) {
-
-                    var hostname = process.env.HOSTNAME;
-                    var uptime = formatUptime(process.uptime());
-
-                    bot.reply(message, ':robot_face: I am a bot named <@' + bot.identity.name +
-                              '>. I have been running for ' + uptime + ' on ' + hostname + '.');
+controller.on('90s_request', function(bot, message) {
+    let age = Math.floor(Math.random() * (205 - 16)) + 16;
+    let myloc = loc[Math.floor(Math.random() * loc.length)];
+    let mysex = sex[Math.floor(Math.random() * loc.length)];
+    bot.reply(message, age + "/" + mysex + "/" + myloc);
 });
-
-function formatUptime(uptime_secs) {
-    var days    = Math.floor(uptime_secs / 86400);
-    uptime_secs %= 86400;
-    var hours   = Math.floor(uptime_secs / 3600);
-    uptime_secs %= 3600;
-    var minutes = Math.floor(uptime_secs / 60);
-    uptime_secs %= 60
-    var seconds = Math.floor(uptime_secs);
-
-    if (hours   < 10) {hours   = "0"+hours;}
-    if (minutes < 10) {minutes = "0"+minutes;}
-    if (seconds < 10) {seconds = "0"+seconds;}
-    return days+'d:'+hours+'h:'+minutes+'m:'+seconds+'s';
-}

@@ -290,35 +290,36 @@ setInterval(function(){
     
 controller.on('update_request', function(bot, message) {
     get_status( function(err, response, body){
-    if (err) {
-        console.log("Error getting stats: ", err);
-    } else {
-        let new_stats = JSON.parse(body);
+        if (err) {
+            console.log("Error getting stats: ", err);
+        } else {
+            let new_stats = JSON.parse(body);
 
-        if (Object.keys(stats).length != 0){
-            new_stats.incidents.forEach((incident) => {
-                if (new Date(incident.updated_at) > new Date(stats.incidents[0].updated_data)) {
-                    let symbol = "";
-                    if (incident.status == "operational" || incident.status == "resolved") {
-                        symbol = "good";
-                    } else if (incident.status == "partial_outage") {
-                        symbol = "warn";
-                    } else {
-                        symbol = "danger";
+            if (Object.keys(stats).length != 0){
+                new_stats.incidents.forEach((incident) => {
+                    if (new Date(incident.updated_at) > new Date(stats.incidents[0].updated_data)) {
+                        let symbol = "";
+                        if (incident.status == "operational" || incident.status == "resolved") {
+                            symbol = "good";
+                        } else if (incident.status == "partial_outage") {
+                            symbol = "warn";
+                        } else {
+                            symbol = "danger";
+                        }
+                        let msg = format_incident(incident, "New Insights Maintenance Incident.");
+                        msg.channel = process.env.ALERT_CHANNEL;
+                        bot.api.chat.postMessage(msg);
                     }
-                    let msg = format_incident(incident, "New Insights Maintenance Incident.");
-                    msg.channel = process.env.ALERT_CHANNEL;
-                    bot.api.chat.postMessage(msg);
-                }
-                incident.components.forEach((comp) => {
-                    if (comp.id in insightsComps && (new Date(insightsComps[comp.id].updated_at) < new Date(comp.updated_at))) {
-                        insightsComps[comp.id] = comp;
-                    }
+                    incident.components.forEach((comp) => {
+                        if (comp.id in insightsComps && (new Date(insightsComps[comp.id].updated_at) < new Date(comp.updated_at))) {
+                            insightsComps[comp.id] = comp;
+                        }
+                    });
                 });
-            });
+            }
+            stats = new_stats;
         }
-        stats = new_stats;
-    }
+    });
 });
 
 controller.on('status_request', function(bot, message) {

@@ -244,6 +244,7 @@ setInterval(get_status, 60000, function(err, response, body){
                         symbol = "danger";
                     }
                     let msg = format_incident(incident, "New Insights Maintenance Incident.");
+                    msg.channel = process.env.ALERT_CHANNEL;
                     bot.api.chat.postMessage(msg);
                 }
                 incident.components.forEach((comp) => {
@@ -348,12 +349,16 @@ controller.hears(['uptime', 'identify yourself', 'who are you', 'what is your na
 });
 
 function formatUptime(uptime_secs) {
+    var days    = Math.floor(uptime_secs / 86400);
+    uptime_secs %= 86400;
     var hours   = Math.floor(uptime_secs / 3600);
-    var minutes = Math.floor((uptime_secs - (hours * 3600)) / 60);
-    var seconds = uptime_secs - (hours * 3600) - (minutes * 60);
+    uptime_secs %= 3600;
+    var minutes = Math.floor(uptime_secs / 60);
+    uptime_secs %= 60
+    var seconds = Math.floor(uptime_secs);
 
     if (hours   < 10) {hours   = "0"+hours;}
     if (minutes < 10) {minutes = "0"+minutes;}
     if (seconds < 10) {seconds = "0"+seconds;}
-    return hours+':'+minutes+':'+seconds;
+    return days+'d:'+hours+'h:'+minutes+'m:'+seconds+'s';
 }

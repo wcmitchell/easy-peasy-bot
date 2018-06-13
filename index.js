@@ -228,7 +228,7 @@ function formatUptime(uptime_secs) {
 
 // Available Commands
 controller.hears('^update$', ['direct_mention', 'direct_message'], function(bot, message) {
-    bot.trigger('update_request', [bot, message]);
+    controller.trigger('update_request', [bot, message]);
 });
 
 controller.hears('pinky', ['direct_mention', 'direct_message'], function (bot, message) {
@@ -236,24 +236,24 @@ controller.hears('pinky', ['direct_mention', 'direct_message'], function (bot, m
 });
 
 controller.hears('status', ['direct_mention', 'direct_message'], function (bot, message) {
-    bot.trigger('status_request', [bot, message]);
+    controller.trigger('status_request', [bot, message]);
 });
 
 controller.hears(['components', '^comps$'], ['direct_mention','direct_message'], function(bot, message) {
-    bot.trigger('component_request', [bot, message]);
+    controller.trigger('component_request', [bot, message]);
 });
 
 controller.hears(['last', 'last_incident'], ['direct_mention', 'direct_message'], function(bot, message) {
-    bot.trigger('last_request', [bot, message]);
+    controller.trigger('last_request', [bot, message]);
 });
 
 controller.hears(['uptime', 'identify yourself', 'who are you', 'what is your name'], 
     ['direct_message', 'direct_mention,mention'], function(bot, message) {
-        bot.trigger('uptime_request', [bot, message]);
+        controller.trigger('uptime_request', [bot, message]);
 });
 
 controller.hears('a/s/l', 'direct_mention', function(bot, message) {
-    bot.trigger('90s_request', [bot, message]);
+    controller.trigger('90s_request', [bot, message]);
 });
 
 controller.hears(['^help$', '^commands$'], ['direct_mention', 'direct_message'], function(bot, message){
@@ -285,7 +285,7 @@ function get_status(callback) {
 }
 
 setInterval(function(){
-    bot.trigger('update_request', [bot, {}]);
+    controller.trigger('update_request', [bot, {}]);
 }, 60000);
     
 controller.on('update_request', function(bot, message) {

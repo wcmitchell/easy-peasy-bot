@@ -395,6 +395,6 @@ controller.on('uptime_request', function(bot, message) {
 controller.on('90s_request', function(bot, message) {
     let age = Math.floor(Math.random() * (205 - 16)) + 16;
     let myloc = loc[Math.floor(Math.random() * loc.length)];
-    let mysex = sex[Math.floor(Math.random() * loc.length)];
+    let mysex = sex[Math.floor(Math.random() * sex.length)];
     bot.reply(message, age + "/" + mysex + "/" + myloc);
 });

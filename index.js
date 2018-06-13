@@ -12,6 +12,7 @@ const login_url = process.env.STATUS_LOGIN_URL;
 const status_url = process.env.STATUS_URL;
 
 var stats = {};
+var goodStatus = ["operational", "completed", "resolved"]
 
 var insightsComps = {
     rpfhspmh2fx2: {
@@ -140,7 +141,7 @@ controller.on('rtm_close', function (bot) {
 
 function get_symbol(incStatus){
     let symbol = "";
-    if (incStatus == "operational" || incStatus == "resolved"){
+    if (goodStatus.indexOf(incStatus) >= 0){
         symbol = "good";
     } else if (incStatus == "partial_outage"){
         symbol = "warn";
@@ -285,7 +286,9 @@ function get_status(callback) {
 }
 
 setInterval(function(){
-    controller.trigger('update_request', [bot, {}]);
+    controller.spawn({}, function(bot) {
+        controller.trigger('update_request', [bot, {}]);
+    });
 }, 60000);
     
 controller.on('update_request', function(bot, message) {
@@ -298,14 +301,7 @@ controller.on('update_request', function(bot, message) {
             if (Object.keys(stats).length != 0){
                 new_stats.incidents.forEach((incident) => {
                     if (new Date(incident.updated_at) > new Date(stats.incidents[0].updated_data)) {
-                        let symbol = "";
-                        if (incident.status == "operational" || incident.status == "resolved") {
-                            symbol = "good";
-                        } else if (incident.status == "partial_outage") {
-                            symbol = "warn";
-                        } else {
-                            symbol = "danger";
-                        }
+                        let symbol = get_symbol(incident.status);
                         let msg = format_incident(incident, "New Insights Maintenance Incident.");
                         msg.channel = process.env.ALERT_CHANNEL;
                         bot.api.chat.postMessage(msg);

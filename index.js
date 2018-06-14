@@ -11,9 +11,67 @@ var sex = [':male_sign:',':female_sign:',':robot_face:'];
 const login_url = process.env.STATUS_LOGIN_URL;
 const status_url = process.env.STATUS_URL;
 
-var stats = {};
-var goodStatus = ["operational", "completed", "resolved"]
+var stats = {
+  "page": {
+    "id": "",
+    "name": "",
+    "url": ""
+  },
+  "status": {
+    "indicator": "none",
+    "description": "All Systems Operational"
+  },
+  "components": [],
+  "incidents": [
+    {
+      "name": "Initial",
+      "status": "resolved",
+      "created_at": "1970-01-01T00:00:00",
+      "updated_at": "1970-01-01T00:00:00",
+      "monitoring_at": null,
+      "resolved_at": "1970-01-01T00:00:00",
+      "impact": "major",
+      "shortlink": "",
+      "postmortem_ignored": false,
+      "postmortem_body": null,
+      "postmortem_body_last_updated_at": null,
+      "postmortem_published_at": null,
+      "postmortem_notified_subscribers": false,
+      "postmortem_notified_twitter": false,
+      "backfilled": false,
+      "scheduled_for": null,
+      "scheduled_until": null,
+      "scheduled_remind_prior": false,
+      "scheduled_reminded_at": null,
+      "impact_override": "major",
+      "scheduled_auto_in_progress": false,
+      "scheduled_auto_completed": false,
+      "id": "",
+      "page_id": "",
+      "incident_updates": [
+        {
+          "status": "resolved",
+          "body": "",
+          "created_at": "1970-01-01T00:00:00",
+          "wants_twitter_update": false,
+          "twitter_updated_at": null,
+          "updated_at": "1970-01-01T00:00:00",
+          "display_at": "1970-01-01T00:00:00",
+          "affected_components": [],
+          "custom_tweet": null,
+          "deliver_notifications": true,
+          "tweet_id": null,
+          "id": "",
+          "incident_id": ""
+        }
+      ],
+      "components": []
+    }
+  ]
+};
 
+var goodStatus = ["operational", "completed", "resolved"]
+var insightsGroupID = "ywc5yn69kmny"
 var insightsComps = {
     rpfhspmh2fx2: {
         name: "etcd service",
@@ -97,7 +155,7 @@ if (process.env.MONGOLAB_URI) {
 /**
  * Are being run as an app or a custom integration? The initialization will differ, depending
  */
-
+config.debug = true;
 if (process.env.TOKEN || process.env.SLACK_TOKEN) {
     //Treat this as a custom integration
     var customIntegration = require('./lib/custom_integrations');
@@ -191,11 +249,11 @@ function format_incident(incident, header) {
     let symbol = get_symbol(incident.status);
 
     let msg = {
+        "text": header,
         "attachments": [
             {
-                "fallback": header,
                 "color": symbol,
-                "title": header,
+                "text": incident.incident_updates[0].body,
                 "fields": [
                     {
                         title: incident.name,
@@ -312,24 +370,30 @@ controller.on('update_request', function(bot, message) {
             console.log("Error getting stats: ", err);
         } else {
             let new_stats = JSON.parse(body);
-
-            if (Object.keys(stats).length != 0){
-                new_stats.incidents.forEach((incident) => {
-                    if (new Date(incident.updated_at) > new Date(stats.incidents[0].updated_data)) {
-                        let symbol = get_symbol(incident.status);
-                        let msg = format_incident(incident, "New Insights Maintenance Incident.");
-                        msg.channel = process.env.ALERT_CHANNEL;
-                        console.log(msg);
-                        bot.api.chat.postMessage(msg);
-                    }
+            let care = false;
+            new_stats.incidents.forEach((incident) => {
+                if (new Date(incident.updated_at) > new Date(stats.incidents[0].updated_at)) {
                     incident.components.forEach((comp) => {
-                        if (comp.id in insightsComps && (new Date(insightsComps[comp.id].updated_at) < new Date(comp.updated_at))) {
+                        if (comp.id in insightsComps || comp.group_id == insightsGroupID){
+                            care = true;
                             insightsComps[comp.id] = comp;
                         }
+                        
                     });
-                });
+                    if (care) {
+                        let symbol = get_symbol(incident.status);
+                        let msg = format_incident(incident, "Insights Maintenance Incident Update");
+                        msg.channel = process.env.ALERT_CHANNEL;
+                        console.log("Bot: ", bot);
+                        console.log("Msg: ", msg);
+                        bot.api.chat.postMessage(msg);
+                        stats.incidents[0] = incident;
+                    }
+                }
+            });
+            if (care) {
+                stats = new_stats;
             }
-            stats = new_stats;
         }
     });
 });

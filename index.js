@@ -286,21 +286,24 @@ function get_status(callback) {
 }
 
 setInterval(function(){
-    controller.spawn({}, function(bot) {
-        controller.trigger('update_request', [bot, {}]);
-    });
+    let bot = controller.spawn({});
+    controller.trigger('update_request', [bot, {}]);
 }, 60000);
+
+function botPing(bot){
+    let msg = {
+        // Ping messages apparently have to have a unique ID...
+        "id": Math.floor(Math.random() * 1000),
+        "type": "ping"
+    }
+    bot.api.chat.postMessage(msg);
+}
 
 // RTM connection dies without regular pings
 setInterval(function(){
-    controler.spawn({}, function(bot) {
-        let msg = {
-            // Ping messages apparently have to have a unique ID...
-            "id": Math.floor(Math.random() * 1000),
-            "type": "ping"
-        };
-        bot.api.chat.postMessage(msg);
-}, 30);
+    let bot = controller.spawn();
+    botPing(bot);
+}, 30000);
 
 
 controller.on('update_request', function(bot, message) {

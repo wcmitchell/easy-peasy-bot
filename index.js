@@ -290,7 +290,19 @@ setInterval(function(){
         controller.trigger('update_request', [bot, {}]);
     });
 }, 60000);
-    
+
+// RTM connection dies without regular pings
+setInterval(function(){
+    controler.spawn({}, function(bot) {
+        let msg = {
+            // Ping messages apparently have to have a unique ID...
+            "id": Math.floor(Math.random() * 1000),
+            "type": "ping"
+        };
+        bot.api.chat.postMessage(msg);
+}, 30);
+
+
 controller.on('update_request', function(bot, message) {
     get_status( function(err, response, body){
         if (err) {
@@ -304,6 +316,7 @@ controller.on('update_request', function(bot, message) {
                         let symbol = get_symbol(incident.status);
                         let msg = format_incident(incident, "New Insights Maintenance Incident.");
                         msg.channel = process.env.ALERT_CHANNEL;
+                        console.log(msg);
                         bot.api.chat.postMessage(msg);
                     }
                     incident.components.forEach((comp) => {

@@ -10,6 +10,7 @@ var sex = [':male_sign:',':female_sign:',':robot_face:'];
 
 const login_url = process.env.STATUS_LOGIN_URL;
 const status_url = process.env.STATUS_URL;
+const bot_token = process.env.BOT_TOKEN;
 
 var stats = {
   "page": {
@@ -352,7 +353,8 @@ function botPing(bot){
     let msg = {
         // Ping messages apparently have to have a unique ID...
         "id": Math.floor(Math.random() * 1000),
-        "type": "ping"
+        "type": "ping",
+        "token": bot_token
     }
     bot.api.chat.postMessage(msg);
 }
@@ -384,8 +386,7 @@ controller.on('update_request', function(bot, message) {
                         let symbol = get_symbol(incident.status);
                         let msg = format_incident(incident, "Insights Maintenance Incident Update");
                         msg.channel = process.env.ALERT_CHANNEL;
-                        console.log("Bot: ", bot);
-                        console.log("Msg: ", msg);
+                        msg.token = bot_token;
                         bot.api.chat.postMessage(msg);
                         stats.incidents[0] = incident;
                     }

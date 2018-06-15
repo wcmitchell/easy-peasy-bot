@@ -348,23 +348,6 @@ setInterval(function(){
     controller.trigger('update_request', [bot, {}]);
 }, 60000);
 
-function botPing(bot){
-    let msg = {
-        // Ping messages apparently have to have a unique ID...
-        "id": Math.floor(Math.random() * 1000),
-        "type": "ping",
-        "token": bot_token
-    }
-    bot.api.chat.postMessage(msg);
-}
-
-// RTM connection dies without regular pings
-setInterval(function(){
-    let bot = controller.spawn();
-    botPing(bot);
-}, 30000);
-
-
 controller.on('update_request', function(bot, message) {
     get_status( function(err, response, body){
         if (err) {

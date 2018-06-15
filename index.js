@@ -237,7 +237,7 @@ function format_components(){
                 "color": symbol,
                 "title": "Insights Services Status",
                 "fields": fields,
-                "footer": "Insights Statsbot",
+                "footer": "Insights Statusbot",
                 "footer_icon": "https://platform.slack-edge.com/img/default_application_icon.png"
             }
         ]
@@ -253,15 +253,18 @@ function format_incident(incident, header) {
         "attachments": [
             {
                 "color": symbol,
-                "text": incident.incident_updates[0].body,
                 "fields": [
                     {
                         title: incident.name,
                         value: "Status: `" + incident.status + "`\nCreated at: " + new Date(incident.created_at).toString() + "\nUpdated at: " + new Date(incident.updated_at).toString(),
                         short: false
+                    },
+                    {
+                        title: "Note:",
+                        value: incident.incident_updates[0].body
                     }
                 ],
-                "footer": "Insights Statsbot",
+                "footer": "Insights Statusbot",
                 "footer_icon": "https://platform.slack-edge.com/img/default_application_icon.png"
             }
         ]

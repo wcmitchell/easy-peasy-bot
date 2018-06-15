@@ -70,7 +70,7 @@ var stats = {
     }
   ]
 };
-
+var firstUpdate = true;
 var goodStatus = ["operational", "completed", "resolved"]
 var insightsGroupID = "ywc5yn69kmny"
 var insightsComps = {
@@ -156,7 +156,6 @@ if (process.env.MONGOLAB_URI) {
 /**
  * Are being run as an app or a custom integration? The initialization will differ, depending
  */
-config.debug = true;
 if (process.env.TOKEN || process.env.SLACK_TOKEN) {
     //Treat this as a custom integration
     var customIntegration = require('./lib/custom_integrations');
@@ -382,7 +381,7 @@ controller.on('update_request', function(bot, message) {
                         }
                         
                     });
-                    if (care) {
+                    if (care && !firstUpdate) {
                         let symbol = get_symbol(incident.status);
                         let msg = format_incident(incident, "Insights Maintenance Incident Update");
                         msg.channel = process.env.ALERT_CHANNEL;
@@ -394,6 +393,7 @@ controller.on('update_request', function(bot, message) {
             });
             if (care) {
                 stats = new_stats;
+                firstUpdate = false;
             }
         }
     });

@@ -184,9 +184,20 @@ controller.on('rtm_open', function (bot) {
     console.log('** The RTM api just connected!');
 });
 
+function start_rtm(bot) {
+    bot.startRTM(function(err,bot,payload) {
+        if (err) {
+            console.log('Failed to start RTM');
+            return setTimeout(start_rtm, 60000);
+        }
+        console.log("RTM started!");
+    });
+}
+
 controller.on('rtm_close', function (bot) {
     console.log('** The RTM api just closed');
     // you may want to attempt to re-open
+    start_rtm(bot);
 });
 
 

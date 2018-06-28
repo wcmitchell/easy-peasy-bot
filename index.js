@@ -5,23 +5,119 @@
 
 var request = require('request');
 var j = request.jar();
-var Q = require('q');
-
 var loc = require('./loc.json');
-var sex = [':male_sign:', ':female_sign:', ':robot_face:'];
+var sex = [':male_sign:',':female_sign:',':robot_face:'];
 
 const login_url = process.env.STATUS_LOGIN_URL;
-const status_username = process.env.STATUS_LOGIN;
-const status_password = process.env.STATUS_PASS;
 const status_url = process.env.STATUS_URL;
 const bot_token = process.env.BOT_TOKEN;
-const group_id = process.env.GROUP_ID;
-const comp_ids = process.env.COMP_IDS.split(',');
 
-var stats = {};
-var goodStatus = ["operational", "completed", "resolved"];
-var insightsComps = {};
+var stats = {
+  "page": {
+    "id": "",
+    "name": "",
+    "url": ""
+  },
+  "status": {
+    "indicator": "none",
+    "description": "All Systems Operational"
+  },
+  "components": [],
+  "incidents": [
+    {
+      "name": "Initial",
+      "status": "resolved",
+      "created_at": "1970-01-01T00:00:00",
+      "updated_at": "1970-01-01T00:00:00",
+      "monitoring_at": null,
+      "resolved_at": "1970-01-01T00:00:00",
+      "impact": "major",
+      "shortlink": "",
+      "postmortem_ignored": false,
+      "postmortem_body": null,
+      "postmortem_body_last_updated_at": null,
+      "postmortem_published_at": null,
+      "postmortem_notified_subscribers": false,
+      "postmortem_notified_twitter": false,
+      "backfilled": false,
+      "scheduled_for": null,
+      "scheduled_until": null,
+      "scheduled_remind_prior": false,
+      "scheduled_reminded_at": null,
+      "impact_override": "major",
+      "scheduled_auto_in_progress": false,
+      "scheduled_auto_completed": false,
+      "id": "",
+      "page_id": "",
+      "incident_updates": [
+        {
+          "status": "resolved",
+          "body": "",
+          "created_at": "1970-01-01T00:00:00",
+          "wants_twitter_update": false,
+          "twitter_updated_at": null,
+          "updated_at": "1970-01-01T00:00:00",
+          "display_at": "1970-01-01T00:00:00",
+          "affected_components": [],
+          "custom_tweet": null,
+          "deliver_notifications": true,
+          "tweet_id": null,
+          "id": "",
+          "incident_id": ""
+        }
+      ],
+      "components": []
+    }
+  ]
+};
+var firstUpdate = true;
+var goodStatus = ["operational", "completed", "resolved"]
+var insightsGroupID = "ywc5yn69kmny"
+var insightsComps = {
+    rpfhspmh2fx2: {
+        name: "etcd service",
+        status:"operational",
+        created_at:"2017-05-29T12:52:20.199Z",
+        updated_at:"1970-01-01T00:00:00Z"
+    },
+    flj89b72jyc4: {
+        name:"Application Creation Service",
+        status:"operational",
+        created_at:"2017-05-29T12:52:20.849Z",
+        updated_at:"1970-01-01T00:00:00Z"
+    },
+    cy1dzkkv9xgq: {
+        status:"operational",
+        name:"Master API Service",
+        created_at:"2017-05-29T12:52:21.627Z",
+        updated_at:"1970-01-01T00:00:00Z"
+    },
+    k18sv76c2ptj: {
+        status:"operational",
+        name:"Docker Registry Service",
+        created_at:"2017-05-29T12:52:22.432Z",
+        updated_at:"1970-01-01T00:00:00Z"
+    }
 
+};
+
+function login(username, password, url, callback) {
+    var options = {
+        url: url,
+        form: {
+            page_access_user: {
+                email: username,
+                password: password
+            },
+        },
+        jar: j,
+        followAllRedirects: true
+    }
+    request.post(options, function (error, response, body) {
+        callback(error, body);
+    });
+
+}
 
 /**
  * Define a function for initiating a conversation on installation
@@ -49,11 +145,11 @@ var config = {};
 if (process.env.MONGOLAB_URI) {
     var BotkitStorage = require('botkit-storage-mongo');
     config = {
-        storage: BotkitStorage({mongoUri: process.env.MONGOLAB_URI})
+        storage: BotkitStorage({mongoUri: process.env.MONGOLAB_URI}),
     };
 } else {
     config = {
-        json_file_store: ((process.env.TOKEN)?'/var/lib/slackbot/db_slack_bot_ci/':'/var/lib/slackbot/db_slack_bot_a/') //use a different name if an app or CI
+        json_file_store: ((process.env.TOKEN)?'/var/lib/slackbot/db_slack_bot_ci/':'/var/lib/slackbot/db_slack_bot_a/'), //use a different name if an app or CI
     };
 }
 
@@ -111,39 +207,6 @@ controller.on('rtm_close', function (bot) {
 // BEGIN EDITING HERE!
 
 // Utility functions
-
-Object.prototype.isEmpty = function() {
-    for (var prop in this) if (this.hasOwnProperty(prop)) return false;
-    return true;
-};
-
-function login() {
-    var deferred = Q.defer();
-    if (j.getCookies(login_url).length > 0 && j.getCookies(login_url)[0].TTL() > 0) {
-        deferred.resolve();
-        return deferred.promise;
-    }
-    var options = {
-        url: status_url,
-        form: {
-            page_access_user: {
-                email: status_username,
-                password: status_password
-            },
-        },
-        jar: j,
-        followAllRedirects: true
-    }
-    request.post(options, function (error, response, body) {
-        if (error) {
-            deferred.reject(new Error(error));
-        } else {
-            deferred.resolve();
-        }
-    });
-
-    return deferred.promise;
-}
 
 function get_symbol(incStatus){
     let symbol = "";
@@ -236,36 +299,6 @@ function formatUptime(uptime_secs) {
     return days+'d:'+hours+'h:'+minutes+'m:'+seconds+'s';
 }
 
-function get_status() {
-    var deferred = Q.defer();
-    
-    request.get({url: status_url, jar: j, followAllRedirects: true}, function(err, response, body){
-        if (err) {
-            deferred.reject(new Error(err));
-        } else {
-            let new_stats = JSON.parse(body);
-            let care = false;
-            new_stats.incidents.forEach((incident) => {
-                if (stats.isEmpty() || new Date(incident.updated_at) > new Date(stats.incidents[0].updated_at)) {
-                    incident.components.forEach((comp) => {
-                        if (comp_ids.includes(comp.id) || comp.group_id == insightsGroupID){
-                            care = true;
-                            insightsComps[comp.id] = comp;
-                        }
-                    });
-                }
-            });
-
-            if (care) {
-                stats = new_stats;
-            }
-            deferred.resolve(care);
-        }
-    });
-
-    return deferred.promise;
-}
-
 // Available Commands
 controller.hears('^update$', ['direct_mention', 'direct_message'], function(bot, message) {
     controller.trigger('update_request', [bot, message]);
@@ -306,6 +339,23 @@ controller.hears(['^help$', '^commands$'], ['direct_mention', 'direct_message'],
 });
 
 // Functionality
+function get_status(callback) {
+    if (!j.getCookies(login_url).length || j.getCookies(login_url)[0].TTL() < 1) {
+        login(process.env.STATUS_LOGIN, process.env.STATUS_PASS, login_url, function(err, response){
+            if (err) {
+                console.log("Error logging in: "+err);
+            } else {
+                request.get({url: status_url, jar: j, followAllRedirects: true}, function(err, response, body){
+                    callback(err, response, body);
+                });
+            }
+        });
+    } else {
+         request.get({url: status_url, jar: j, followAllRedirects: true}, function(err, response, body){
+            callback(err, response, body);
+         });
+    }
+}
 
 setInterval(function(){
     let bot = controller.spawn({});
@@ -313,61 +363,103 @@ setInterval(function(){
 }, 60000);
 
 controller.on('update_request', function(bot, message) {
-    login()
-    .then(get_status)
-    .then(function(care){
-        if(care){
-            let msg = format_incident(stats.incidents[0], "Insights Maintenance Incident Update");
-            msg.channel = process.env.ALERT_CHANNEL;
-            msg.token = bot_token;
-            bot.api.chat.postMessage(msg);
+    get_status( function(err, response, body){
+        if (err) {
+            console.log("Error getting stats: ", err);
+        } else {
+            let new_stats = JSON.parse(body);
+            let care = false;
+            new_stats.incidents.forEach((incident) => {
+                if (new Date(incident.updated_at) > new Date(stats.incidents[0].updated_at)) {
+                    incident.components.forEach((comp) => {
+                        if (comp.id in insightsComps || comp.group_id == insightsGroupID){
+                            care = true;
+                            insightsComps[comp.id] = comp;
+                        }
+                        
+                    });
+                    if (care && !firstUpdate) {
+                        let symbol = get_symbol(incident.status);
+                        let msg = format_incident(incident, "Insights Maintenance Incident Update");
+                        msg.channel = process.env.ALERT_CHANNEL;
+                        msg.token = bot_token;
+                        bot.api.chat.postMessage(msg);
+                        stats.incidents[0] = incident;
+                    }
+                }
+            });
+            if (care) {
+                stats = new_stats;
+                firstUpdate = false;
+            }
         }
-    })
-    .catch(function (error) {
-        console.log("Error Updating status: ", err);
-    })
-
+    });
 });
 
 controller.on('status_request', function(bot, message) {
-    login()
-    .then(get_status)
-    .then(function() {
-        if (!stats.isEmpty()) {
-            bot.reply(message, stats.status.description);
-        } else {
-            bot.reply(message, "Status not currently available.");
-        }
-    })
-    .catch(function(err) {console.log(err)});
+    if (!Object.keys(stats).length){
+        get_status(function(err, response, body){
+            if (err) {
+                console.log("Error getting status: "+err);
+            } else {
+                stats = JSON.parse(body);
+                stats.incidents.forEach((incident) => {
+                    incident.components.forEach((comp) => {
+                        if (comp.id in insightsComps && (new Date(insightsComps[comp.id].updated_at) < new Date(comp.updated_at))) {
+                            insightsComps[comp.id] = comp;
+                        }
+                    });
+                });
+                bot.reply(message, stats.status.description);
+            }
+        });
+    } else {
+        bot.reply(message, stats.status.description);
+    }
 });
 
 controller.on('component_request', function(bot, message) {
-    login()
-    .then(get_status)
-    .then(function() {
-        if(!stats.isEmpty()) {
-            let msg = format_components();
-            bot.reply(message, msg);
-        } else {
-            bot.reply(message, "Components not currently available.");
-        }
-    })
-    .catch(function(err) {console.log(err)})
+    if (!Object.keys(stats).length){
+        get_status(function(err, response, body){
+            if (err) {
+                console.log("Error getting status: "+err);
+            } else {
+                stats = JSON.parse(body);
+                stats.incidents.forEach((incident) => {
+                    incident.components.forEach((comp) => {
+                        if (comp.id in insightsComps && (new Date(insightsComps[comp.id].updated_at) < new Date(comp.updated_at))) {
+                            insightsComps[comp.id] = comp;
+                        }
+                    });
+                });
+                let msg = format_components();
+                bot.reply(message, msg);
+            }
+        });
+    } else {
+        let msg = format_components();
+        bot.reply(message, msg);
+    }
 });
 
 controller.on('last_request', function(bot, message) {
-    login()
-    .then(get_status)
-    .then(function() {
-        if (!stats.isEmpty()) {
-            let msg = format_incident(stats.incidents[0], "Most recent Insights Incident");
-            bot.reply(message, msg);
-        } else {
-            bot.reply(message, "Incidents not currently available.");
-        }
-    })
-    .catch(function(err) {console.log(err)})
+    var symbol = ""
+    if (!Object.keys(stats).length){
+        get_status(function(err, response, body){
+            if (err) {
+                console.log("Error getting status: "+err);
+            } else {
+                stats = JSON.parse(body);
+                let incident = stats.incidents[0];
+                let msg = format_incident(incident, "Most recent Insights Incident");
+                bot.reply(message, msg);
+            }
+        });
+    } else {
+        let incident = stats.incidents[0];
+        let msg = format_incident(incident, "Most recent Insights Incident");
+        bot.reply(message, msg);
+    }
 });
 
 controller.on('uptime_request', function(bot, message) {

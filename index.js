@@ -20,6 +20,7 @@ const comp_ids = process.env.COMP_IDS.split(',');
 
 var stats = {};
 var goodStatus = ["operational", "completed", "resolved"];
+var warnStatus = ["partial_outage", "scheduled"]
 var insightsComps = {};
 
 
@@ -149,7 +150,7 @@ function get_symbol(incStatus){
     let symbol = "";
     if (goodStatus.indexOf(incStatus) >= 0){
         symbol = "good";
-    } else if (incStatus == "partial_outage"){
+    } else if (warnStatus.indexOf(incStatus) >= 0)){
         symbol = "warn";
     } else {
         symbol = "danger";
@@ -246,6 +247,10 @@ function get_status() {
             let new_stats = JSON.parse(body);
             let care = false;
             new_stats.incidents.forEach((incident) => {
+                console.log("New Incident is:\n" + JSON.dumps(incident))
+                if (!stats.isEmpty()) {
+                    console.log("Current most recent is:\n" + JSON.dumps(stats.incidents[0]))
+                }
                 if (stats.isEmpty() || new Date(incident.updated_at) > new Date(stats.incidents[0].updated_at)) {
                     incident.components.forEach((comp) => {
                         if (comp_ids.includes(comp.id) || comp.group_id == insightsGroupID){
